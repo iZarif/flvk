@@ -22,19 +22,19 @@ local function to_vkvalues(table1)
    return result
 end
 
-local function build_query_string(parameters)
-   local parameters_strings = {}
+local function make_query_string(params)
+   local params_pairs = {}
 
-   for key, value in pairs(parameters) do
-      table.insert(parameters_strings, key .. "=" .. value)
+   for key, value in pairs(params) do
+      table.insert(params_pairs, key .. "=" .. value)
    end
 
-   return table.concat(parameters_strings, "&")
+   return table.concat(params_pairs, "&")
 end
 
-local function request(url, parameters)
-   local vkvalues_parameters = to_vkvalues(parameters)
-   local query_string = build_query_string(vkvalues_parameters)
+local function request(url, params)
+   local vkvalues_params = to_vkvalues(params)
+   local query_string = make_query_string(vkvalues_params)
    local response = {}
 
    https.request{
@@ -49,9 +49,9 @@ local function request(url, parameters)
       sink = ltn12.sink.table(response)
    }
 
-   local response_string = table.concat(response)
+   local response_text = table.concat(response)
 
-   return dkjson.decode(response_string, 1, nil)
+   return dkjson.decode(response_text, 1, nil)
 end
 
 local function merge_tables(table1, table2)
@@ -73,14 +73,14 @@ function flvk.make_account(username, password)
 	   api_version = "5.101"}
 end
 
-function flvk.auth(account, parameters)
-   local parameters = parameters or {}
+function flvk.auth(account, params)
+   local params = params or {}
 
-   local required_parameters = {grant_type = "password", client_id = account.client_id,
+   local required_params = {grant_type = "password", client_id = account.client_id,
 				client_secret = account.client_secret, username = account.username, password = account.password}
-   local all_parameters = merge_tables(required_parameters, parameters)
+   local all_params = merge_tables(required_params, params)
 
-   local response = request("https://oauth.vk.com/token", all_parameters)
+   local response = request("https://oauth.vk.com/token", all_params)
 
    if response.access_token then
       account.access_token = response.access_token
@@ -92,11 +92,11 @@ function flvk.auth(account, parameters)
 end
 
 
-function flvk.call(account, method_name, parameters)
-   local required_parameters = {access_token = account.access_token, v = account.api_version}
-   local all_parameters = merge_tables(required_parameters, parameters)
+function flvk.call(account, method_name, params)
+   local required_params = {access_token = account.access_token, v = account.api_version}
+   local all_params = merge_tables(required_params, params)
 
-   return request("https://api.vk.com/method/" .. method_name, all_parameters)
+   return request("https://api.vk.com/method/" .. method_name, all_params)
 end
 
 return flvk
